@@ -357,7 +357,7 @@ async function startAnalysis() {
   render();
 
   const fbProfile = state.profiles.find(p => p.id === 'fb' && p.included);
-  const fbName = state.brandName;
+  const fbName = fbProfile?.slug || fbProfile?.handle?.replace('@','') || state.brandName;
 
   setStep(1, 'active');
   setStep(2, 'active');
