@@ -74,14 +74,15 @@ function extractSocials(html, domain) {
   const slug = domain.split('.')[0];
   const socials = [];
 
-  // Facebook
-  const fbMatch = html.match(/(?:href|src)=["']https?:\/\/(?:www\.)?facebook\.com\/([^"'/?#]+)/i);
-  const fbPage = fbMatch ? fbMatch[1] : slug;
+  // Facebook — salva lo slug esatto per usarlo come username nell'API
+  const fbMatch = html.match(/(?:href|src)=["']https?:\/\/(?:www\.)?facebook\.com\/([^"'/?#\s]+)/i);
+  const fbSlug = fbMatch ? fbMatch[1].replace(/\/$/, '') : slug;
   socials.push({
     id: 'fb',
     platform: 'Facebook / Meta Ads',
-    handle: fbPage,
-    url: `https://facebook.com/${fbPage}`,
+    handle: fbSlug,
+    slug: fbSlug,          // slug esatto per resolvePageId
+    url: `https://facebook.com/${fbSlug}`,
     confidence: fbMatch ? 'high' : 'low',
     detected: !!fbMatch
   });
