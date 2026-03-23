@@ -88,6 +88,16 @@ export default async function handler(req, res) {
 }
 
 async function resolvePageId(name, token) {
+  // Strategia 1: risolvi lo slug direttamente come username Facebook
+  // Funziona per URL tipo facebook.com/leviathan.levelup
+  try {
+    const slugParams = new URLSearchParams({ access_token: token, fields: 'id,name' });
+    const slugRes = await fetch(`https://graph.facebook.com/v19.0/${encodeURIComponent(name)}?${slugParams}`);
+    const slugData = await slugRes.json();
+    if (slugData.id && !slugData.error) return slugData.id;
+  } catch {}
+
+  // Strategia 2: cerca per nome testuale
   try {
     const params = new URLSearchParams({
       access_token: token,
@@ -98,14 +108,12 @@ async function resolvePageId(name, token) {
     const res = await fetch(`https://graph.facebook.com/v19.0/search?${params}`);
     const data = await res.json();
     if (data.data && data.data.length > 0) {
-      // Prende la pagina con più fan (più probabilmente quella ufficiale)
       const sorted = data.data.sort((a, b) => (b.fan_count || 0) - (a.fan_count || 0));
       return sorted[0].id;
     }
-    return null;
-  } catch {
-    return null;
-  }
+  } catch {}
+
+  return null;
 }
 
 function extractHeadline(ad) {
