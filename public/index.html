@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Competitor Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0a; --surface: #141414; --surface2: #1c1c1c;
+  --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.14);
+  --text: #f0ede8; --muted: #7a7772;
+  --accent: #c8f566; --accent-dim: rgba(200,245,102,0.1); --accent-text: #1a2800;
+  --purple: #a78bfa; --purple-dim: rgba(167,139,250,0.1);
+  --red: #f87171; --amber: #fbbf24; --green: #34d399;
+  --r: 10px; --r-sm: 6px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
+.header { border-bottom: 1px solid var(--border); padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; }
+.logo { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 500; }
+.logo-mark { width: 28px; height: 28px; background: var(--accent); border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+.logo-mark svg { width: 14px; height: 14px; }
+.header-tag { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--muted); border: 1px solid var(--border); padding: 3px 10px; border-radius: 20px; }
+.main { max-width: 780px; margin: 0 auto; padding: 60px 24px 80px; }
+
+/* INPUT */
+.hero-eyebrow { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--accent); letter-spacing: .12em; text-transform: uppercase; margin-bottom: 20px; }
+.hero-title { font-size: 40px; font-weight: 300; letter-spacing: -.03em; line-height: 1.1; margin-bottom: 12px; }
+.hero-title strong { font-weight: 500; }
+.hero-sub { font-size: 15px; color: var(--muted); margin-bottom: 44px; max-width: 480px; line-height: 1.6; }
+.input-row { display: flex; gap: 10px; margin-bottom: 14px; }
+.domain-input { flex: 1; height: 52px; background: var(--surface); border: 1px solid var(--border2); border-radius: var(--r); padding: 0 18px; font-size: 15px; font-family: 'DM Mono', monospace; color: var(--text); outline: none; transition: border-color .2s; }
+.domain-input::placeholder { color: var(--muted); }
+.domain-input:focus { border-color: var(--accent); }
+.btn-primary { height: 52px; padding: 0 28px; background: var(--accent); color: var(--accent-text); border: none; border-radius: var(--r); font-size: 14px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; white-space: nowrap; transition: opacity .15s; }
+.btn-primary:hover { opacity: .88; }
+.btn-primary:disabled { opacity: .35; cursor: not-allowed; }
+.hint { font-size: 12px; color: var(--muted); display: flex; gap: 16px; flex-wrap: wrap; }
+.hint span { cursor: pointer; transition: color .15s; }
+.hint span:hover { color: var(--accent); }
+.hint span::before { content: '→ '; }
+
+/* LOADING */
+.loading-steps { display: flex; flex-direction: column; gap: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 20px 24px; }
+.l-step { display: flex; align-items: center; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.l-step:last-child { border-bottom: none; }
+.l-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border2); flex-shrink: 0; transition: background .3s; }
+.l-dot.done { background: var(--accent); }
+.l-dot.active { background: var(--accent); animation: blink 1s infinite; }
+.l-label { flex: 1; color: var(--muted); transition: color .2s; }
+.l-label.done, .l-label.active { color: var(--text); }
+.l-status { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
+.l-status.done { color: var(--accent); }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* CONFIRM */
+.confirm-title { font-size: 22px; font-weight: 400; letter-spacing: -.02em; margin-bottom: 6px; }
+.confirm-sub { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+.profile-card { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--r); padding: 14px 18px; margin-bottom: 8px; display: flex; align-items: center; gap: 14px; transition: border-color .2s, opacity .2s; }
+.profile-card.confirmed { border-color: rgba(200,245,102,.4); }
+.profile-card.excluded { opacity: .35; }
+.profile-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 16px; }
+.profile-info { flex: 1; min-width: 0; }
+.profile-platform { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--muted); margin-bottom: 2px; }
+.profile-name { font-size: 14px; font-weight: 500; }
+.profile-url { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.confidence-badge { font-size: 10px; font-family: 'DM Mono', monospace; padding: 1px 6px; border-radius: 3px; margin-left: 6px; }
+.conf-high { background: rgba(52,211,153,.15); color: var(--green); }
+.conf-low { background: rgba(251,191,36,.12); color: var(--amber); }
+.profile-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.btn-toggle { height: 28px; padding: 0 12px; border-radius: var(--r-sm); border: 1px solid var(--border2); background: transparent; color: var(--muted); font-size: 12px; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all .15s; }
+.btn-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.btn-toggle.active-confirm { background: var(--accent-dim); border-color: rgba(200,245,102,.4); color: var(--accent); }
+.btn-toggle.active-exclude { background: rgba(248,113,113,.1); border-color: rgba(248,113,113,.3); color: var(--red); }
+.confirm-note { font-size: 12px; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 10px 14px; margin: 14px 0 22px; line-height: 1.5; }
+.confirm-note strong { color: var(--amber); }
+.btn-launch { height: 46px; padding: 0 32px; background: var(--accent); color: var(--accent-text); border: none; border-radius: var(--r); font-size: 14px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: opacity .15s; }
+.btn-launch:hover { opacity: .88; }
+
+/* RESULTS */
+.results-domain { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--accent); margin-bottom: 4px; }
+.results-title { font-size: 22px; font-weight: 400; letter-spacing: -.02em; }
+.live-badge { font-size: 11px; font-family: 'DM Mono', monospace; background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(200,245,102,.2); padding: 4px 10px; border-radius: 20px; display: flex; align-items: center; gap: 6px; }
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: blink 2s infinite; }
+.stats-row { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px; margin: 18px 0 20px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 14px 16px; }
+.stat-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; font-family: 'DM Mono', monospace; }
+.stat-value { font-size: 22px; font-weight: 400; letter-spacing: -.02em; }
+.stat-value.green { color: var(--accent); }
+.stat-value.amber { color: var(--amber); }
+.stat-null { font-size: 16px; color: var(--muted); }
+.tabs { display: flex; gap: 2px; margin-bottom: 20px; background: var(--surface); border-radius: var(--r); padding: 4px; border: 1px solid var(--border); }
+.tab-btn { flex: 1; height: 34px; border-radius: 7px; border: none; background: transparent; color: var(--muted); font-size: 13px; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all .15s; }
+.tab-btn.active { background: var(--surface2); color: var(--text); font-weight: 500; }
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ADS */
+.ads-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.ad-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
+.ad-creative { height: 72px; background: var(--surface2); display: flex; align-items: center; justify-content: center; border-bottom: 1px solid var(--border); }
+.ad-body { padding: 12px 14px; }
+.ad-platform { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; }
+.ad-headline { font-size: 13px; font-weight: 500; margin-bottom: 4px; line-height: 1.3; }
+.ad-copy { font-size: 12px; color: var(--muted); line-height: 1.4; margin-bottom: 8px; }
+.ad-footer { display: flex; align-items: center; justify-content: space-between; }
+.ad-live { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--accent); }
+.ad-days { font-size: 10px; color: var(--muted); }
+.ad-link { font-size: 11px; color: var(--purple); text-decoration: none; }
+.ad-link:hover { text-decoration: underline; }
+
+/* GATE */
+.gate-wrap { position: relative; }
+.gate-blur { filter: blur(5px); opacity: .35; pointer-events: none; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.gate-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; background: linear-gradient(to bottom, transparent 0%, var(--bg) 55%); }
+.gate-title { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+.gate-sub { font-size: 12px; color: var(--muted); margin-bottom: 16px; text-align: center; }
+.gate-row { display: flex; gap: 8px; width: 100%; max-width: 380px; }
+.gate-email { flex: 1; height: 40px; background: var(--surface); border: 1px solid var(--border2); border-radius: var(--r-sm); padding: 0 14px; font-size: 13px; font-family: 'DM Sans', sans-serif; color: var(--text); outline: none; }
+.gate-email:focus { border-color: var(--accent); }
+.gate-email::placeholder { color: var(--muted); }
+.gate-submit { height: 40px; padding: 0 16px; background: var(--accent); color: var(--accent-text); border: none; border-radius: var(--r-sm); font-size: 13px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; white-space: nowrap; }
+.gate-success { font-size: 13px; color: var(--accent); margin-top: 10px; }
+
+/* CANALI */
+.channels-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 20px 24px; }
+.ch-row { display: flex; align-items: center; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.ch-row:last-child { border-bottom: none; }
+.ch-name { font-size: 13px; width: 120px; flex-shrink: 0; }
+.ch-bar-bg { flex: 1; height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+.ch-bar { height: 4px; border-radius: 2px; }
+.ch-pct { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); width: 36px; text-align: right; }
+.kw-section { margin-top: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 16px 20px; }
+.kw-title { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--muted); margin-bottom: 12px; letter-spacing: .06em; }
+.kw-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.kw-row:last-child { border-bottom: none; }
+.kw-word { flex: 1; }
+.kw-vol { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
+.kw-cpc { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--amber); }
+.ch-note { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 12px 16px; font-size: 13px; color: var(--muted); line-height: 1.6; margin-top: 14px; }
+
+/* TECH */
+.tech-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 20px 24px; }
+.tech-section { margin-bottom: 18px; }
+.tech-section:last-child { margin-bottom: 0; }
+.tech-section-label { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--muted); margin-bottom: 8px; letter-spacing: .06em; }
+.tech-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tech-tag { font-size: 12px; padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border2); color: var(--muted); }
+.tech-tag.marketing { border-color: rgba(200,245,102,.25); color: var(--accent); }
+.tech-tag.ads { border-color: rgba(251,191,36,.25); color: var(--amber); }
+.tech-tag.analytics { border-color: rgba(167,139,250,.25); color: var(--purple); }
+.tech-tag.platform { border-color: rgba(52,211,153,.25); color: var(--green); }
+
+/* EMPTY / ERROR states */
+.empty-state { text-align: center; padding: 32px 20px; color: var(--muted); font-size: 13px; }
+.error-note { background: rgba(248,113,113,.08); border: 1px solid rgba(248,113,113,.2); border-radius: var(--r-sm); padding: 10px 14px; font-size: 12px; color: var(--red); margin-bottom: 12px; }
+.warning-note { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.2); border-radius: var(--r-sm); padding: 10px 14px; font-size: 12px; color: var(--amber); margin-bottom: 12px; }
+.back-btn { background: transparent; border: 1px solid var(--border2); border-radius: var(--r-sm); padding: 6px 14px; color: var(--muted); font-size: 13px; font-family: 'DM Sans', sans-serif; cursor: pointer; margin-bottom: 24px; transition: color .15s; }
+.back-btn:hover { color: var(--text); }
+
+@keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+.fade-up { animation: fadeUp .35s ease both; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="2.5"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+    </div>
+    Competitor Intelligence
+  </div>
+  <div class="header-tag">beta</div>
+</div>
+
+<div class="main">
+  <div id="app"></div>
+</div>
+
+<script>
+const API_BASE = '/api'; // su Vercel diventa automaticamente i tuoi endpoint
+
+let state = {
+  step: 'input',
+  domain: '',
+  brandName: '',
+  profiles: [],
+  results: null,
+  loading: false,
+  error: null
+};
+
+function render() {
+  const app = document.getElementById('app');
+  if (state.step === 'input') app.innerHTML = renderInput();
+  else if (state.step === 'detecting') app.innerHTML = renderDetecting();
+  else if (state.step === 'confirm') app.innerHTML = renderConfirm();
+  else if (state.step === 'analyzing') app.innerHTML = renderAnalyzing();
+  else if (state.step === 'results') app.innerHTML = renderResults();
+  app.querySelectorAll('.fade-up').forEach((el, i) => {
+    el.style.animationDelay = (i * 0.05) + 's';
+  });
+}
+
+// ── STEP 1: INPUT ──────────────────────────────────────────
+function renderInput() {
+  return `
+  <div class="fade-up">
+    <div class="hero-eyebrow">Analisi competitiva</div>
+    <h1 class="hero-title">Scopri cosa fa<br><strong>il tuo competitor</strong></h1>
+    <p class="hero-sub">Inserisci il dominio. Vedi le ads attive, i canali su cui investe, lo stack tecnologico e le keyword per cui sta pagando.</p>
+    <div class="input-row">
+      <input class="domain-input" id="domain-input" type="text" placeholder="competitor.it" value="${state.domain}" />
+      <button class="btn-primary" onclick="startDetect()">Analizza →</button>
+    </div>
+    <div class="hint">
+      <span onclick="setDomain('naturalia-bio.it')">naturalia-bio.it</span>
+      <span onclick="setDomain('bottega-verde.it')">bottega-verde.it</span>
+      <span onclick="setDomain('yoox.com')">yoox.com</span>
+    </div>
+    ${state.error ? `<div class="error-note" style="margin-top:14px;">${state.error}</div>` : ''}
+  </div>`;
+}
+
+function setDomain(d) {
+  state.domain = d;
+  render();
+  setTimeout(() => document.getElementById('domain-input')?.focus(), 50);
+}
+
+async function startDetect() {
+  const input = document.getElementById('domain-input');
+  const domain = input?.value.trim() || state.domain;
+  if (!domain) return;
+  state.domain = domain.replace(/^https?:\/\//, '').replace(/\/.*$/, '').toLowerCase();
+  state.step = 'detecting';
+  state.error = null;
+  render();
+  await runDetect();
+}
+
+// ── STEP 2: DETECTING ─────────────────────────────────────
+function renderDetecting() {
+  return `
+  <div class="fade-up">
+    <div style="font-family:'DM Mono',monospace; font-size:13px; color:var(--accent); margin-bottom:20px;">→ ${state.domain}</div>
+    <div class="loading-steps">
+      <div class="l-step"><div class="l-dot" id="ld-1"></div><div class="l-label" id="ll-1">Apertura homepage e rilevamento brand</div><div class="l-status" id="ls-1"></div></div>
+      <div class="l-step"><div class="l-dot" id="ld-2"></div><div class="l-label" id="ll-2">Ricerca profili social collegati</div><div class="l-status" id="ls-2"></div></div>
+      <div class="l-step"><div class="l-dot" id="ld-3"></div><div class="l-label" id="ll-3">Preparazione dati per conferma</div><div class="l-status" id="ls-3"></div></div>
+    </div>
+  </div>`;
+}
+
+async function runDetect() {
+  await delay(200);
+  setStep(1, 'active');
+  try {
+    const res = await fetch(`${API_BASE}/detect?domain=${encodeURIComponent(state.domain)}`);
+    const data = await res.json();
+    setStep(1, 'done', 'trovato');
+    await delay(300);
+    setStep(2, 'active');
+    state.brandName = data.brandName || state.domain;
+    state.profiles = (data.socials || []).map(p => ({ ...p, included: true }));
+    await delay(500);
+    setStep(2, 'done', `${state.profiles.length} profili`);
+    setStep(3, 'active');
+    await delay(400);
+    setStep(3, 'done', 'pronto');
+    await delay(300);
+    state.step = 'confirm';
+    if (data.warning) state.warning = data.warning;
+    render();
+  } catch (err) {
+    state.step = 'input';
+    state.error = 'Impossibile raggiungere il sito. Verifica il dominio e riprova.';
+    render();
+  }
+}
+
+function setStep(n, status, text) {
+  const dot = document.getElementById(`ld-${n}`);
+  const label = document.getElementById(`ll-${n}`);
+  const st = document.getElementById(`ls-${n}`);
+  if (!dot) return;
+  dot.className = `l-dot ${status}`;
+  label.className = `l-label ${status}`;
+  if (text && st) { st.className = 'l-status done'; st.textContent = text; }
+}
+
+// ── STEP 3: CONFERMA PROFILI ───────────────────────────────
+function renderConfirm() {
+  const profilesHTML = state.profiles.map(p => `
+    <div class="profile-card ${p.included ? 'confirmed' : 'excluded'}" id="pcard-${p.id}">
+      <div class="profile-icon" style="background:${p.included ? 'rgba(200,245,102,.08)' : 'rgba(255,255,255,.03)'}; border:1px solid ${p.included ? 'rgba(200,245,102,.2)' : 'var(--border)'}">
+        ${p.id === 'fb' ? '📘' : p.id === 'ig' ? '📷' : '💼'}
+      </div>
+      <div class="profile-info">
+        <div class="profile-platform">
+          ${p.platform}
+          <span class="confidence-badge ${p.confidence === 'high' ? 'conf-high' : 'conf-low'}">
+            ${p.confidence === 'high' ? 'rilevato' : 'stimato'}
+          </span>
+        </div>
+        <div class="profile-name">${p.handle}</div>
+        <div class="profile-url">${p.url}</div>
+      </div>
+      <div class="profile-actions">
+        <button class="btn-toggle ${p.included ? 'active-confirm' : ''}" onclick="toggleProfile('${p.id}', true)">Includi</button>
+        <button class="btn-toggle ${!p.included ? 'active-exclude' : ''}" onclick="toggleProfile('${p.id}', false)">Escludi</button>
+      </div>
+    </div>`).join('');
+
+  return `
+  <div class="fade-up">
+    <button class="back-btn" onclick="goBack()">← Cambia dominio</button>
+    <div class="confirm-title">Conferma i profili trovati</div>
+    <div class="confirm-sub">Abbiamo rilevato questi profili per <strong>${state.brandName}</strong>. Correggi se necessario prima di avviare l'analisi.</div>
+    ${state.warning ? `<div class="warning-note">${state.warning}</div>` : ''}
+    ${profilesHTML}
+    <div class="confirm-note"><strong>Importante:</strong> i dati delle ads Meta provengono dalla pagina Facebook confermata. Se il competitor usa una pagina diversa da quella rilevata, modificala ora per risultati accurati.</div>
+    <button class="btn-launch" onclick="startAnalysis()">Conferma e avvia analisi →</button>
+  </div>`;
+}
+
+function toggleProfile(id, include) {
+  state.profiles = state.profiles.map(p => p.id === id ? { ...p, included: include } : p);
+  render();
+}
+
+function goBack() {
+  state.step = 'input';
+  state.error = null;
+  state.warning = null;
+  render();
+}
+
+// ── STEP 4: ANALISI IN CORSO ───────────────────────────────
+function renderAnalyzing() {
+  return `
+  <div class="fade-up">
+    <div style="font-family:'DM Mono',monospace; font-size:13px; color:var(--accent); margin-bottom:20px;">→ ${state.domain}</div>
+    <div class="loading-steps">
+      <div class="l-step"><div class="l-dot" id="ld-1"></div><div class="l-label" id="ll-1">Meta Ad Library — ads attive</div><div class="l-status" id="ls-1"></div></div>
+      <div class="l-step"><div class="l-dot" id="ld-2"></div><div class="l-label" id="ll-2">SEMrush — traffico e keyword paid</div><div class="l-status" id="ls-2"></div></div>
+      <div class="l-step"><div class="l-dot" id="ld-3"></div><div class="l-label" id="ll-3">Tech stack — tool e pixel rilevati</div><div class="l-status" id="ls-3"></div></div>
+      <div class="l-step"><div class="l-dot" id="ld-4"></div><div class="l-label" id="ll-4">Composizione report</div><div class="l-status" id="ls-4"></div></div>
+    </div>
+  </div>`;
+}
+
+async function startAnalysis() {
+  state.step = 'analyzing';
+  render();
+
+  const fbProfile = state.profiles.find(p => p.id === 'fb' && p.included);
+  const fbName = state.brandName;
+
+  setStep(1, 'active');
+  setStep(2, 'active');
+  setStep(3, 'active');
+
+  // Chiamate in parallelo
+  const [adsRes, semRes, techRes] = await Promise.allSettled([
+    fetch(`${API_BASE}/adlibrary?pageName=${encodeURIComponent(fbName)}&limit=20`).then(r => r.json()),
+    fetch(`${API_BASE}/semrush?domain=${encodeURIComponent(state.domain)}`).then(r => r.json()),
+    fetch(`${API_BASE}/techstack?domain=${encodeURIComponent(state.domain)}`).then(r => r.json())
+  ]);
+
+  setStep(1, 'done', adsRes.status === 'fulfilled' ? `${adsRes.value.total || 0} ads` : 'errore');
+  setStep(2, 'done', semRes.status === 'fulfilled' ? 'ok' : 'errore');
+  setStep(3, 'done', techRes.status === 'fulfilled' ? `${techRes.value.summary?.totalCount || 0} tool` : 'errore');
+  setStep(4, 'active');
+  await delay(400);
+  setStep(4, 'done', 'completato');
+  await delay(300);
+
+  state.results = {
+    ads: adsRes.status === 'fulfilled' ? adsRes.value : { ads: [], total: 0, error: 'API non disponibile' },
+    semrush: semRes.status === 'fulfilled' ? semRes.value : null,
+    tech: techRes.status === 'fulfilled' ? techRes.value : null
+  };
+
+  state.step = 'results';
+  render();
+}
+
+// ── STEP 5: RISULTATI ──────────────────────────────────────
+function renderResults() {
+  const { ads, semrush, tech } = state.results;
+  const totalAds = ads.total || 0;
+  const traffic = semrush?.traffic?.formatted || '—';
+  const kwPaid = semrush?.keywords?.paid ?? '—';
+  const authority = semrush?.authority?.score ?? '—';
+
+  return `
+  <div class="fade-up">
+    <button class="back-btn" onclick="resetTool()">← Nuova analisi</button>
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:4px;">
+      <div>
+        <div class="results-domain">→ ${state.domain}</div>
+        <div class="results-title">Report intelligence — ${state.brandName}</div>
+      </div>
+      <div class="live-badge"><div class="live-dot"></div>Dati live</div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-label">ads attive</div><div class="stat-value green">${totalAds > 0 ? totalAds : '<span class="stat-null">—</span>'}</div></div>
+      <div class="stat-card"><div class="stat-label">traffico/mese</div><div class="stat-value">${traffic}</div></div>
+      <div class="stat-card"><div class="stat-label">keyword paid</div><div class="stat-value">${kwPaid}</div></div>
+      <div class="stat-card"><div class="stat-label">authority score</div><div class="stat-value amber">${authority}</div></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" id="tab-ads" onclick="switchTab('ads')">Ads attive</button>
+      <button class="tab-btn" id="tab-canali" onclick="switchTab('canali')">Canali</button>
+      <button class="tab-btn" id="tab-tech" onclick="switchTab('tech')">Tech stack</button>
+    </div>
+
+    <div class="panel active" id="panel-ads">${renderAdsPanel(ads)}</div>
+    <div class="panel" id="panel-canali">${renderCanaliPanel(semrush)}</div>
+    <div class="panel" id="panel-tech">${renderTechPanel(tech)}</div>
+  </div>`;
+}
+
+function renderAdsPanel(ads) {
+  if (ads.error && !ads.ads?.length) {
+    return `<div class="error-note">${ads.error}</div>
+    <div class="warning-note">Per attivare questo modulo: aggiungi META_ACCESS_TOKEN nelle variabili d'ambiente di Vercel.</div>`;
+  }
+  if (!ads.ads?.length) {
+    return `<div class="empty-state">Nessuna ads attiva trovata per questa pagina.<br>Verifica che la pagina Facebook confermata sia corretta.</div>`;
+  }
+
+  const visibleAds = ads.ads.slice(0, 4);
+  const hiddenCount = Math.max(0, (ads.total || ads.ads.length) - 4);
+
+  const adsHTML = visibleAds.map(ad => `
+    <div class="ad-card">
+      <div class="ad-creative">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></svg>
+      </div>
+      <div class="ad-body">
+        <div class="ad-platform">${(ad.platforms || ['Meta']).join(' · ')}</div>
+        <div class="ad-headline">${escapeHtml(ad.headline)}</div>
+        ${ad.copy ? `<div class="ad-copy">${escapeHtml(ad.copy)}</div>` : ''}
+        <div class="ad-footer">
+          <span class="ad-live">● ATTIVA</span>
+          <span class="ad-days">${ad.daysActive != null ? `da ${ad.daysActive} giorni` : ''}</span>
+          ${ad.snapshotUrl ? `<a class="ad-link" href="${ad.snapshotUrl}" target="_blank">vedi →</a>` : ''}
+        </div>
+      </div>
+    </div>`).join('');
+
+  return `
+    <div class="ads-grid">${adsHTML}</div>
+    ${hiddenCount > 0 ? `
+    <div class="gate-wrap">
+      <div class="gate-blur">
+        ${Array(4).fill(`<div class="ad-card"><div class="ad-creative"></div><div class="ad-body"><div class="ad-headline">Annuncio nascosto</div><div class="ad-copy">Inserisci la tua email per sbloccare...</div></div></div>`).join('')}
+      </div>
+      <div class="gate-overlay">
+        <div class="gate-title">+${hiddenCount} ads nascoste</div>
+        <div class="gate-sub">Inserisci la tua email per ricevere il report completo</div>
+        <div class="gate-row">
+          <input class="gate-email" id="gate-email" type="email" placeholder="tua@email.it" />
+          <button class="gate-submit" onclick="submitGate()">Invia →</button>
+        </div>
+        <div class="gate-success" id="gate-success" style="display:none">Report inviato! Controlla la tua email.</div>
+      </div>
+    </div>` : ''}`;
+}
+
+function renderCanaliPanel(semrush) {
+  if (!semrush) return `<div class="warning-note">SEMrush API non disponibile. Aggiungi SEMRUSH_API_KEY nelle variabili d'ambiente.</div>`;
+
+  const channels = semrush.channels || [];
+  const keywords = semrush.topAdKeywords || [];
+
+  const chHTML = channels.length ? channels.map(ch => `
+    <div class="ch-row">
+      <div class="ch-name">${ch.nome}</div>
+      <div class="ch-bar-bg"><div class="ch-bar" style="width:${ch.pct}%; background:${ch.colore};"></div></div>
+      <div class="ch-pct">${ch.pct}%</div>
+    </div>`).join('') : '<div class="empty-state">Dati canali non disponibili per questo dominio.</div>';
+
+  const kwHTML = keywords.length ? `
+    <div class="kw-section">
+      <div class="kw-title">TOP KEYWORD PAID</div>
+      ${keywords.map(kw => `
+        <div class="kw-row">
+          <div class="kw-word">${escapeHtml(kw.keyword)}</div>
+          <div class="kw-vol">${kw.volume ? kw.volume.toLocaleString() + '/mo' : ''}</div>
+          <div class="kw-cpc">${kw.cpc ? '€' + kw.cpc : ''}</div>
+        </div>`).join('')}
+    </div>` : '';
+
+  return `
+    <div class="channels-card">${chHTML}</div>
+    ${kwHTML}
+    ${semrush.traffic?.organic ? `<div class="ch-note">Traffico organico stimato: <strong>${semrush.traffic.formatted}</strong> visite/mese. Keyword organiche indicizzate: <strong>${semrush.keywords?.organic?.toLocaleString() || '—'}</strong>.</div>` : ''}`;
+}
+
+function renderTechPanel(tech) {
+  if (!tech || !tech.summary) return `<div class="warning-note">Impossibile analizzare il sito — potrebbe bloccare l'accesso ai bot.</div>`;
+
+  const s = tech.summary;
+  const total = s.totalCount || 0;
+
+  if (total === 0) return `<div class="empty-state">Nessun tool rilevato. Il sito potrebbe usare script offuscati o bloccare l'analisi.</div>`;
+
+  const categories = [
+    { key: 'platform', label: 'PIATTAFORMA', cls: 'platform' },
+    { key: 'marketing', label: 'MARKETING AUTOMATION', cls: 'marketing' },
+    { key: 'ads', label: 'ADVERTISING & PIXEL', cls: 'ads' },
+    { key: 'analytics', label: 'ANALYTICS & CRO', cls: 'analytics' },
+    { key: 'crm', label: 'CRM', cls: 'analytics' },
+    { key: 'chat', label: 'CHAT & SUPPORT', cls: 'marketing' },
+    { key: 'other', label: 'ALTRO', cls: '' }
+  ];
+
+  const sectionsHTML = categories
+    .filter(c => s[c.key]?.length)
+    .map(c => `
+      <div class="tech-section">
+        <div class="tech-section-label">${c.label}</div>
+        <div class="tech-tags">
+          ${s[c.key].map(t => `<span class="tech-tag ${c.cls}">${escapeHtml(t)}</span>`).join('')}
+        </div>
+      </div>`).join('');
+
+  return `<div class="tech-card">${sectionsHTML}</div>
+    <div class="ch-note" style="margin-top:14px;">Rilevati <strong>${total} tool</strong> sul sito. ${s.marketing?.length ? `Usa <strong>${s.marketing.join(', ')}</strong> per il marketing automation.` : ''} ${s.platform?.length ? `Piattaforma: <strong>${s.platform.join(', ')}</strong>.` : ''}</div>`;
+}
+
+// ── UTILS ──────────────────────────────────────────────────
+function switchTab(id) {
+  ['ads', 'canali', 'tech'].forEach(t => {
+    document.getElementById(`panel-${t}`)?.classList.toggle('active', t === id);
+    document.getElementById(`tab-${t}`)?.classList.toggle('active', t === id);
+  });
+}
+
+function submitGate() {
+  const email = document.getElementById('gate-email')?.value.trim();
+  if (!email || !email.includes('@')) return;
+  document.getElementById('gate-success').style.display = 'block';
+  document.getElementById('gate-email').disabled = true;
+  document.querySelector('.gate-submit').disabled = true;
+  // Qui in produzione: POST al tuo CRM o a un endpoint /api/lead
+  console.log('Lead acquisito:', { email, domain: state.domain, brand: state.brandName });
+}
+
+function resetTool() {
+  state = { step: 'input', domain: '', brandName: '', profiles: [], results: null, error: null };
+  render();
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && state.step === 'input') startDetect();
+});
+
+render();
+</script>
+</body>
+</html>

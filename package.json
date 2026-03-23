@@ -1,0 +1,8 @@
+{
+  "name": "competitor-intelligence",
+  "version": "1.0.0",
+  "description": "Competitor Ad Intelligence Tool",
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  }
+}
