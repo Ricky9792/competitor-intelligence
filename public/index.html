@@ -305,8 +305,21 @@ function renderConfirm() {
             ${p.confidence === 'high' ? 'rilevato' : 'stimato'}
           </span>
         </div>
+        ${p.id === 'fb' ? `
+        <div style="margin-top:6px;">
+          <div style="font-size:11px; color:var(--muted); margin-bottom:4px;">Nome pagina Facebook (modificabile)</div>
+          <input 
+            type="text" 
+            id="fb-slug-input"
+            value="${p.slug || p.handle}"
+            oninput="updateFbSlug(this.value)"
+            style="width:100%; height:32px; background:var(--surface2); border:1px solid var(--border2); border-radius:6px; padding:0 10px; font-size:13px; font-family:'DM Mono',monospace; color:var(--text); outline:none;"
+            placeholder="es. nomepagina o nome.pagina"
+          />
+          <div style="font-size:11px; color:var(--muted); margin-top:3px;">facebook.com/<span id="fb-slug-preview">${p.slug || p.handle}</span></div>
+        </div>` : `
         <div class="profile-name">${p.handle}</div>
-        <div class="profile-url">${p.url}</div>
+        <div class="profile-url">${p.url}</div>`}
       </div>
       <div class="profile-actions">
         <button class="btn-toggle ${p.included ? 'active-confirm' : ''}" onclick="toggleProfile('${p.id}', true)">Includi</button>
@@ -329,6 +342,15 @@ function renderConfirm() {
 function toggleProfile(id, include) {
   state.profiles = state.profiles.map(p => p.id === id ? { ...p, included: include } : p);
   render();
+}
+
+function updateFbSlug(value) {
+  const clean = value.trim().replace(/^https?:\/\/(www\.)?facebook\.com\//,'').replace(/\/$/,'');
+  state.profiles = state.profiles.map(p => 
+    p.id === 'fb' ? { ...p, slug: clean, handle: clean, url: `https://facebook.com/${clean}` } : p
+  );
+  const preview = document.getElementById('fb-slug-preview');
+  if (preview) preview.textContent = clean;
 }
 
 function goBack() {
