@@ -25,32 +25,30 @@ export default async function handler(req, res) {
       }
     }
 
-    // Chiama Meta Ad Library API
     const fields = [
       'id',
       'ad_creation_time',
       'ad_delivery_start_time',
       'ad_snapshot_url',
       'page_name',
+      'page_id',
       'publisher_platforms',
       'ad_creative_bodies',
       'ad_creative_link_titles',
       'ad_creative_link_descriptions',
-      'ad_creative_link_captions',
-      'impressions',
-      'spend'
+      'ad_creative_link_captions'
     ].join(',');
 
     const params = new URLSearchParams({
       access_token: token,
-      ad_reached_countries: '["IT"]',  // Italia — modifica se serve altro paese
-      search_page_ids: resolvedPageId,
-      ad_active_status: 'ACTIVE',
+      ad_reached_countries: "['IT']",
+      search_page_ids: `[${resolvedPageId}]`,
+      ad_type: 'ALL',
       fields,
       limit: Math.min(Number(limit), 50)
     });
 
-    const apiUrl = `https://graph.facebook.com/v19.0/ads_archive?${params}`;
+    const apiUrl = `https://graph.facebook.com/v25.0/ads_archive?${params}`;
     const response = await fetch(apiUrl, { signal: AbortSignal.timeout(10000) });
     const data = await response.json();
 
@@ -70,9 +68,7 @@ export default async function handler(req, res) {
       platforms: ad.publisher_platforms || [],
       startDate: ad.ad_delivery_start_time || ad.ad_creation_time,
       snapshotUrl: ad.ad_snapshot_url,
-      daysActive: calcDaysActive(ad.ad_delivery_start_time || ad.ad_creation_time),
-      impressions: ad.impressions,
-      spend: ad.spend
+      daysActive: calcDaysActive(ad.ad_delivery_start_time || ad.ad_creation_time)
     }));
 
     return res.status(200).json({
@@ -89,27 +85,40 @@ export default async function handler(req, res) {
 
 async function resolvePageId(name, token) {
   // Strategia 1: risolvi lo slug direttamente come username Facebook
-  // Funziona per URL tipo facebook.com/leviathan.levelup
   try {
     const slugParams = new URLSearchParams({ access_token: token, fields: 'id,name' });
-    const slugRes = await fetch(`https://graph.facebook.com/v19.0/${encodeURIComponent(name)}?${slugParams}`);
+    const slugRes = await fetch(`https://graph.facebook.com/v25.0/${encodeURIComponent(name)}?${slugParams}`);
     const slugData = await slugRes.json();
     if (slugData.id && !slugData.error) return slugData.id;
   } catch {}
 
-  // Strategia 2: cerca per nome testuale
+  // Strategia 2: cerca tramite Ad Library con search_terms e prende il page_id più frequente
   try {
     const params = new URLSearchParams({
       access_token: token,
-      q: name,
-      type: 'page',
-      fields: 'id,name,fan_count'
+      search_terms: name,
+      ad_reached_countries: "['IT']",
+      ad_type: 'ALL',
+      fields: 'page_id,page_name',
+      limit: 20
     });
-    const res = await fetch(`https://graph.facebook.com/v19.0/search?${params}`);
+    const res = await fetch(`https://graph.facebook.com/v25.0/ads_archive?${params}`);
     const data = await res.json();
+
     if (data.data && data.data.length > 0) {
-      const sorted = data.data.sort((a, b) => (b.fan_count || 0) - (a.fan_count || 0));
-      return sorted[0].id;
+      // Conta quale page_id appare più spesso con quel nome
+      const counts = {};
+      for (const ad of data.data) {
+        if (ad.page_name?.toLowerCase() === name.toLowerCase() && ad.page_id) {
+          counts[ad.page_id] = (counts[ad.page_id] || 0) + 1;
+        }
+      }
+      const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+      if (sorted.length > 0) return sorted[0][0];
+
+      // Fallback: primo risultato con page_id
+      const first = data.data.find(ad => ad.page_id);
+      if (first) return first.page_id;
     }
   } catch {}
 
