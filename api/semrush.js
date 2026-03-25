@@ -13,16 +13,13 @@ export default async function handler(req, res) {
   const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/.*$/, '').toLowerCase();
 
   try {
-    // Chiamate in parallelo per velocità
-    const [overview, adKeywords, backlinks] = await Promise.allSettled([
+    const [overview, adKeywords] = await Promise.allSettled([
       fetchDomainOverview(cleanDomain, apiKey),
-      fetchAdKeywords(cleanDomain, apiKey),
-      fetchBacklinks(cleanDomain, apiKey)
+      fetchAdKeywords(cleanDomain, apiKey)
     ]);
 
     const overviewData = overview.status === 'fulfilled' ? overview.value : null;
     const adData = adKeywords.status === 'fulfilled' ? adKeywords.value : null;
-    const backlinkData = backlinks.status === 'fulfilled' ? backlinks.value : null;
 
     return res.status(200).json({
       domain: cleanDomain,
@@ -37,8 +34,7 @@ export default async function handler(req, res) {
         paid: adData?.total || null
       },
       authority: {
-        score: backlinkData?.authority_score || overviewData?.authority_score || null,
-        backlinks: backlinkData?.total || null
+        score: overviewData?.authority_score || null
       },
       channels: buildChannelEstimate(overviewData),
       topAdKeywords: adData?.keywords?.slice(0, 10) || []
@@ -50,56 +46,33 @@ export default async function handler(req, res) {
 }
 
 async function fetchDomainOverview(domain, key) {
-  // SEMrush Domain Overview API
   const params = new URLSearchParams({
     type: 'domain_rank',
     key,
     domain,
-    database: 'it',  // Database Italia
-    export_columns: 'Or,Ot,Oc,Ad,At,Ac,FKn,FKk'
-    // Or=organic_rank, Ot=organic_traffic, Oc=organic_keywords
-    // Ad=paid_rank, At=paid_traffic, Ac=paid_keywords
+    database: 'it',
+    export_columns: 'Or,Ot,Oc,Ad,At,Ac'
   });
-
   const res = await fetch(`https://api.semrush.com/?${params}`);
   const text = await res.text();
-  return parseSemrushCSV(text, 'domain_rank');
+  return parseSemrushCSV(text);
 }
 
 async function fetchAdKeywords(domain, key) {
-  // SEMrush Advertising Research — keyword su cui il competitor fa ads
   const params = new URLSearchParams({
     type: 'domain_adwords',
     key,
     domain,
     database: 'it',
     display_limit: 20,
-    export_columns: 'Ph,Po,Nq,Cp,Co,Tr,Tc,Nr,Td'
-    // Ph=keyword, Po=position, Nq=search_volume, Cp=cpc, Tr=traffic%
+    export_columns: 'Ph,Po,Nq,Cp,Tr'
   });
-
   const res = await fetch(`https://api.semrush.com/?${params}`);
   const text = await res.text();
   return parseSemrushKeywords(text);
 }
 
-async function fetchBacklinks(domain, key) {
-  // SEMrush Backlinks Overview — authority score
-  const params = new URLSearchParams({
-    type: 'backlinks_overview',
-    key,
-    target: domain,
-    target_type: 'root_domain',
-    export_columns: 'ascore,total,domains_num,urls_num,ips_num,follows_num,nofollows_num'
-  });
-
-  const res = await fetch(`https://api.semrush.com/?${params}`);
-  const text = await res.text();
-  return parseSemrushBacklinks(text);
-}
-
-// Parsing risposta CSV SEMrush
-function parseSemrushCSV(text, type) {
+function parseSemrushCSV(text) {
   const lines = text.trim().split('\n');
   if (lines.length < 2) return null;
 
@@ -109,25 +82,14 @@ function parseSemrushCSV(text, type) {
   const obj = {};
   headers.forEach((h, i) => { obj[h] = values[i]; });
 
-  // Mappa tutti i possibili nomi di colonna
-  const organicTraffic = parseInt(
-    obj['Organic Traffic'] || obj['Ot'] || obj['Or'] || 0
-  );
-  const paidTraffic = parseInt(
-    obj['Adwords Traffic'] || obj['At'] || obj['Ad'] || 0
-  );
-  const organicKeywords = parseInt(
-    obj['Organic Keywords'] || obj['Oc'] || 0
-  );
-  const paidKeywords = parseInt(
-    obj['Adwords Keywords'] || obj['Ac'] || 0
-  );
+  const organicTraffic = parseInt(obj['Organic Traffic'] || obj['Ot'] || 0);
+  const paidTraffic = parseInt(obj['Adwords Traffic'] || obj['At'] || 0);
+  const organicKeywords = parseInt(obj['Organic Keywords'] || obj['Oc'] || 0);
 
   return {
     organic_traffic: organicTraffic,
     paid_traffic: paidTraffic,
     organic_keywords: organicKeywords,
-    paid_keywords: paidKeywords,
     authority_score: parseInt(obj['Authority Score'] || obj['AS'] || 0),
     total_traffic: organicTraffic + paidTraffic
   };
@@ -154,22 +116,6 @@ function parseSemrushKeywords(text) {
   return { keywords, total: keywords.length };
 }
 
-function parseSemrushBacklinks(text) {
-  const lines = text.trim().split('\n');
-  if (lines.length < 2) return null;
-
-  const headers = lines[0].split(';').map(h => h.trim());
-  const vals = lines[1].split(';');
-  const obj = {};
-  headers.forEach((h, i) => { obj[h] = vals[i]?.trim(); });
-
-  return {
-    authority_score: parseInt(obj['Authority Score'] || obj['ascore'] || 0),
-    total: parseInt(obj['Total Backlinks'] || obj['total'] || 0),
-    domains: parseInt(obj['Referring Domains'] || obj['domains_num'] || 0)
-  };
-}
-
 function formatTraffic(n) {
   if (!n) return '—';
   if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
@@ -185,9 +131,8 @@ function buildChannelEstimate(data) {
   const total = organic + paid;
   if (total === 0) return null;
 
-  // Stima distribuzione canali basata sui dati SEMrush
-  const organicPct = Math.round((organic / total) * 60); // organic search
-  const paidSearchPct = Math.round((paid / total) * 20);  // paid search
+  const organicPct = Math.round((organic / total) * 60);
+  const paidSearchPct = Math.round((paid / total) * 20);
   const remaining = 100 - organicPct - paidSearchPct;
   const paidSocialPct = Math.round(remaining * 0.45);
   const directPct = Math.round(remaining * 0.35);
