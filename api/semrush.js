@@ -103,19 +103,33 @@ function parseSemrushCSV(text, type) {
   const lines = text.trim().split('\n');
   if (lines.length < 2) return null;
 
-  const headers = lines[0].split(';');
-  const values = lines[1].split(';');
+  const headers = lines[0].split(';').map(h => h.trim());
+  const values = lines[1].split(';').map(v => v.trim());
 
   const obj = {};
-  headers.forEach((h, i) => { obj[h.trim()] = values[i]?.trim(); });
+  headers.forEach((h, i) => { obj[h] = values[i]; });
+
+  // Mappa tutti i possibili nomi di colonna
+  const organicTraffic = parseInt(
+    obj['Organic Traffic'] || obj['Ot'] || obj['Or'] || 0
+  );
+  const paidTraffic = parseInt(
+    obj['Adwords Traffic'] || obj['At'] || obj['Ad'] || 0
+  );
+  const organicKeywords = parseInt(
+    obj['Organic Keywords'] || obj['Oc'] || 0
+  );
+  const paidKeywords = parseInt(
+    obj['Adwords Keywords'] || obj['Ac'] || 0
+  );
 
   return {
-    organic_traffic: parseInt(obj['Organic Traffic'] || obj['Or'] || 0),
-    paid_traffic: parseInt(obj['Paid Traffic'] || obj['Ad'] || 0),
-    organic_keywords: parseInt(obj['Organic Keywords'] || obj['Oc'] || 0),
-    paid_keywords: parseInt(obj['Paid Keywords'] || obj['Ac'] || 0),
+    organic_traffic: organicTraffic,
+    paid_traffic: paidTraffic,
+    organic_keywords: organicKeywords,
+    paid_keywords: paidKeywords,
     authority_score: parseInt(obj['Authority Score'] || obj['AS'] || 0),
-    total_traffic: parseInt(obj['Organic Traffic'] || 0) + parseInt(obj['Paid Traffic'] || 0)
+    total_traffic: organicTraffic + paidTraffic
   };
 }
 
@@ -129,11 +143,11 @@ function parseSemrushKeywords(text) {
     const obj = {};
     headers.forEach((h, i) => { obj[h] = vals[i]?.trim(); });
     return {
-      keyword: obj['Keyword'] || obj['Ph'],
-      position: obj['Position'] || obj['Po'],
+      keyword: obj['Keyword'] || obj['Ph'] || '',
+      position: obj['Position'] || obj['Po'] || '',
       volume: parseInt(obj['Search Volume'] || obj['Nq'] || 0),
-      cpc: obj['CPC'] || obj['Cp'],
-      traffic: obj['Traffic (%)'] || obj['Tr']
+      cpc: obj['CPC'] || obj['Cp'] || '',
+      traffic: obj['Traffic (%)'] || obj['Tr'] || ''
     };
   }).filter(k => k.keyword);
 
