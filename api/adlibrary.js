@@ -13,7 +13,6 @@ export default async function handler(req, res) {
   try {
     let resolvedPageId = pageId;
 
-    // Se abbiamo solo il nome, cerchiamo l'ID pagina
     if (!pageId && pageName) {
       resolvedPageId = await resolvePageId(pageName, token);
       if (!resolvedPageId) {
@@ -84,7 +83,6 @@ export default async function handler(req, res) {
 }
 
 async function resolvePageId(name, token) {
-  // Strategia 1: risolvi lo slug direttamente come username Facebook
   try {
     const slugParams = new URLSearchParams({ access_token: token, fields: 'id,name' });
     const slugRes = await fetch(`https://graph.facebook.com/v25.0/${encodeURIComponent(name)}?${slugParams}`);
@@ -92,7 +90,6 @@ async function resolvePageId(name, token) {
     if (slugData.id && !slugData.error) return slugData.id;
   } catch {}
 
-  // Strategia 2: cerca tramite Ad Library con search_terms e prende il page_id più frequente
   try {
     const params = new URLSearchParams({
       access_token: token,
@@ -106,7 +103,6 @@ async function resolvePageId(name, token) {
     const data = await res.json();
 
     if (data.data && data.data.length > 0) {
-      // Conta quale page_id appare più spesso con quel nome
       const counts = {};
       for (const ad of data.data) {
         if (ad.page_name?.toLowerCase() === name.toLowerCase() && ad.page_id) {
@@ -116,7 +112,6 @@ async function resolvePageId(name, token) {
       const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
       if (sorted.length > 0) return sorted[0][0];
 
-      // Fallback: primo risultato con page_id
       const first = data.data.find(ad => ad.page_id);
       if (first) return first.page_id;
     }
