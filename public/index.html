@@ -793,7 +793,6 @@ function renderResults() {
   const totalAds = ads.total || 0;
   const traffic = semrush?.traffic?.formatted || '—';
   const kwPaid = semrush?.keywords?.paid ?? '—';
-  const authority = semrush?.authority?.score ?? '—';
 
   return `
   <div class="fade-up">
@@ -806,7 +805,7 @@ function renderResults() {
       <div class="live-badge"><div class="live-dot"></div>Dati live</div>
     </div>
 
-    <div class="stats-row">
+    <div class="stats-row" style="grid-template-columns: repeat(3, minmax(0,1fr));">
       <div class="stat-card">
         <div class="stat-label">Ads attive</div>
         <div class="stat-value red">${totalAds > 0 ? totalAds : '<span class="stat-null">—</span>'}</div>
@@ -818,10 +817,6 @@ function renderResults() {
       <div class="stat-card">
         <div class="stat-label">Keyword paid</div>
         <div class="stat-value">${kwPaid}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Authority score</div>
-        <div class="stat-value">${authority !== '—' ? authority : '<span class="stat-null">—</span>'}</div>
       </div>
     </div>
 
@@ -851,10 +846,9 @@ function renderAdsPanel(ads) {
 
   const adsHTML = visibleAds.map(ad => `
     <div class="ad-card">
-  <div class="ad-creative" style="height:120px; background:linear-gradient(135deg, #1a1a1a 0%, #111 100%); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:8px;">
-  <div style="font-size:10px; font-family:'Space Mono',monospace; color:var(--muted); letter-spacing:.12em; text-transform:uppercase;">${(ad.platforms || ['Meta']).map(p => p.replace('audience_network','Audience').toUpperCase()).join(' · ')}</div>
-  <div style="font-size:9px; color:#333; letter-spacing:.08em; font-family:'Space Mono',monospace;">META ADS</div>
-</div>
+      <div class="ad-creative">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></svg>
+      </div>
       <div class="ad-body">
         <div class="ad-platform">${(ad.platforms || ['Meta']).join(' · ')}</div>
         <div class="ad-headline">${escapeHtml(ad.headline)}</div>
