@@ -140,8 +140,8 @@ function detect(html, headers, url) {
   if (h.includes('gorgias')) add('chat', 'Gorgias');
 
   // ─── PAYMENT / OTHER ───
-  if (h.includes('stripe') || h.includes('js.stripe.com')) add('other', 'Stripe');
-  if (h.includes('paypal') || h.includes('paypalobjects')) add('other', 'PayPal');
+  if (h.includes('js.stripe.com') || h.includes('stripe.com/v3')) add('other', 'Stripe');
+  if (h.includes('paypalobjects.com') || h.includes('paypal.com/sdk')) add('other', 'PayPal');
   if (h.includes('cloudflare') || headers['cf-ray'] || headers['server']?.includes('cloudflare')) add('other', 'Cloudflare');
   if (h.includes('hcaptcha') || h.includes('recaptcha') || h.includes('grecaptcha')) add('other', h.includes('hcaptcha') ? 'hCaptcha' : 'Google reCAPTCHA');
   if (h.includes('tailwindcss') || h.includes('tailwind')) add('other', 'Tailwind CSS');
