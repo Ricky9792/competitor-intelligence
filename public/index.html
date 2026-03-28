@@ -846,9 +846,11 @@ function renderAdsPanel(ads) {
 
   const adsHTML = visibleAds.map(ad => `
     <div class="ad-card">
-      <div class="ad-creative">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></svg>
-      </div>
+      ${ad.snapshotUrl ? `
+      <a href="${ad.snapshotUrl}" target="_blank" class="ad-creative" style="height:80px; display:flex; align-items:center; justify-content:center; text-decoration:none; background:var(--surface2); border-bottom:1px solid var(--border); cursor:pointer; transition:background .2s;" onmouseover="this.style.background='#1f1f1f'" onmouseout="this.style.background='var(--surface2)'">
+        <span style="font-family:'Syne',sans-serif; font-weight:800; font-size:13px; color:var(--accent); letter-spacing:.12em; text-transform:uppercase; animation:blink 2s infinite;">VEDI →</span>
+      </a>` : `
+      <div class="ad-creative" style="height:80px; background:var(--surface2); border-bottom:1px solid var(--border);"></div>`}
       <div class="ad-body">
         <div class="ad-platform">${(ad.platforms || ['Meta']).join(' · ')}</div>
         <div class="ad-headline">${escapeHtml(ad.headline)}</div>
@@ -856,7 +858,6 @@ function renderAdsPanel(ads) {
         <div class="ad-footer">
           <span class="ad-live">● Attiva</span>
           <span class="ad-days">${ad.daysActive != null ? `da ${ad.daysActive}gg` : ''}</span>
-          ${ad.snapshotUrl ? `<a class="ad-link" href="${ad.snapshotUrl}" target="_blank">Vedi →</a>` : ''}
         </div>
       </div>
     </div>`).join('');
