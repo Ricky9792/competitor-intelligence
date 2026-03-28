@@ -83,6 +83,7 @@ export default async function handler(req, res) {
 }
 
 async function resolvePageId(name, token) {
+  // Strategia 1: slug diretto come username Facebook (es. leviathan.levelup)
   try {
     const slugParams = new URLSearchParams({ access_token: token, fields: 'id,name' });
     const slugRes = await fetch(`https://graph.facebook.com/v25.0/${encodeURIComponent(name)}?${slugParams}`);
@@ -90,6 +91,8 @@ async function resolvePageId(name, token) {
     if (slugData.id && !slugData.error) return slugData.id;
   } catch {}
 
+  // Strategia 2: cerca tramite Ad Library con search_terms
+  // Conta quale page_id appare più spesso, poi fallback al primo trovato
   try {
     const params = new URLSearchParams({
       access_token: token,
@@ -105,15 +108,12 @@ async function resolvePageId(name, token) {
     if (data.data && data.data.length > 0) {
       const counts = {};
       for (const ad of data.data) {
-        if (ad.page_name?.toLowerCase() === name.toLowerCase() && ad.page_id) {
+        if (ad.page_id) {
           counts[ad.page_id] = (counts[ad.page_id] || 0) + 1;
         }
       }
       const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
       if (sorted.length > 0) return sorted[0][0];
-
-      const first = data.data.find(ad => ad.page_id);
-      if (first) return first.page_id;
     }
   } catch {}
 
