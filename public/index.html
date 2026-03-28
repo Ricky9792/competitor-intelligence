@@ -851,13 +851,9 @@ function renderAdsPanel(ads) {
 
   const adsHTML = visibleAds.map(ad => `
     <div class="ad-card">
-    <div class="ad-creative" style="height:200px; padding:0; overflow:hidden;">
-  <iframe 
-    src="${ad.snapshotUrl}" 
-    style="width:100%; height:100%; border:none; pointer-events:none; transform:scale(0.8); transform-origin:top left; width:125%; height:125%;"
-    scrolling="no"
-    sandbox="allow-same-origin allow-scripts"
-  ></iframe>
+  <div class="ad-creative" style="height:120px; background:linear-gradient(135deg, #1a1a1a 0%, #111 100%); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:8px;">
+  <div style="font-size:10px; font-family:'Space Mono',monospace; color:var(--muted); letter-spacing:.12em; text-transform:uppercase;">${(ad.platforms || ['Meta']).map(p => p.replace('audience_network','Audience').toUpperCase()).join(' · ')}</div>
+  <div style="font-size:9px; color:#333; letter-spacing:.08em; font-family:'Space Mono',monospace;">META ADS</div>
 </div>
       <div class="ad-body">
         <div class="ad-platform">${(ad.platforms || ['Meta']).join(' · ')}</div>
