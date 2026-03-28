@@ -4,22 +4,30 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const { pageId, pageName, limit = 10 } = req.query;
+  const { pageId, pageName, brandName, limit = 10 } = req.query;
   const token = process.env.META_ACCESS_TOKEN;
 
   if (!token) return res.status(500).json({ error: 'META_ACCESS_TOKEN non configurato' });
-  if (!pageId && !pageName) return res.status(400).json({ error: 'pageId o pageName richiesto' });
+  if (!pageId && !pageName && !brandName) return res.status(400).json({ error: 'pageId, pageName o brandName richiesto' });
 
   try {
     let resolvedPageId = pageId;
 
-    if (!pageId && pageName) {
-      resolvedPageId = await resolvePageId(pageName, token);
+    if (!pageId) {
+      // Prova prima con lo slug Facebook (es. leviathan.levelup)
+      if (pageName) {
+        resolvedPageId = await resolvePageId(pageName, token);
+      }
+      // Se non trovato, prova con il brandName (es. Leviathan)
+      if (!resolvedPageId && brandName) {
+        resolvedPageId = await resolvePageId(brandName, token);
+      }
+
       if (!resolvedPageId) {
         return res.status(200).json({
           ads: [],
           total: 0,
-          warning: `Pagina Facebook non trovata per "${pageName}". Verifica che il nome sia corretto.`
+          warning: `Pagina Facebook non trovata. Verifica che il nome sia corretto.`
         });
       }
     }
@@ -83,7 +91,7 @@ export default async function handler(req, res) {
 }
 
 async function resolvePageId(name, token) {
-  // Strategia 1: slug diretto come username Facebook (es. leviathan.levelup)
+  // Strategia 1: slug diretto come username Facebook
   try {
     const slugParams = new URLSearchParams({ access_token: token, fields: 'id,name' });
     const slugRes = await fetch(`https://graph.facebook.com/v25.0/${encodeURIComponent(name)}?${slugParams}`);
@@ -92,7 +100,6 @@ async function resolvePageId(name, token) {
   } catch {}
 
   // Strategia 2: cerca tramite Ad Library con search_terms
-  // Conta quale page_id appare più spesso, poi fallback al primo trovato
   try {
     const params = new URLSearchParams({
       access_token: token,
