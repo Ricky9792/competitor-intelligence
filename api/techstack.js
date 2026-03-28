@@ -52,9 +52,9 @@ function detect(html, headers, url) {
 
   // ─── CMS / PLATFORM ───
   if (h.includes('wp-content') || h.includes('wp-includes') || h.includes('wordpress')) add('platform', 'WordPress');
-  if (h.includes('shopify') || h.includes('cdn.shopify.com') || h.includes('myshopify.com')) add('platform', 'Shopify');
-  if (h.includes('woocommerce')) add('platform', 'WooCommerce');
-  if (h.includes('magento') || h.includes('mage/cookies')) add('platform', 'Magento');
+  if (h.includes('cdn.shopify.com') || h.includes('myshopify.com') || h.includes('shopify.com/s/files')) add('platform', 'Shopify');
+  if (h.includes('woocommerce') && h.includes('wp-content')) add('platform', 'WooCommerce');
+  if (h.includes('mage/cookies') || h.includes('magento/') || h.includes('mage.cookies')) add('platform', 'Magento');
   if (h.includes('squarespace')) add('platform', 'Squarespace');
   if (h.includes('wix.com') || h.includes('wixstatic')) add('platform', 'Wix');
   if (h.includes('webflow')) add('platform', 'Webflow');
