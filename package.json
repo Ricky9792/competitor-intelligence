@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Competitor Ad Intelligence Tool",
   "dependencies": {
-    "node-fetch": "^3.3.2",
-    "wappalyzer": "^6.10.66"
+    "node-fetch": "^3.3.2"
   }
 }
