@@ -30,7 +30,6 @@ body {
   position: relative;
 }
 
-/* Effetto Grain */
 body::before {
   content: "";
   position: fixed;
@@ -42,7 +41,6 @@ body::before {
   background-image: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E');
 }
 
-/* HEADER */
 .header {
   border-bottom: 1px solid var(--border);
   padding: 18px 40px;
@@ -89,7 +87,6 @@ body::before {
 
 .main { max-width: 900px; margin: 0 auto; padding: 80px 40px 100px; position: relative; z-index: 10; }
 
-/* INPUT STEP */
 .hero-label {
   font-size: 11px;
   color: var(--accent);
@@ -177,7 +174,6 @@ body::before {
 .hint span:hover { color: var(--accent); }
 .hint span::before { content: '→ '; color: var(--accent); }
 
-/* LOADING */
 .loading-domain-label {
   font-size: 11px;
   color: var(--accent);
@@ -222,7 +218,6 @@ body::before {
 .l-status.done { color: var(--accent); }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
 
-/* CONFIRM */
 .confirm-title {
   font-family: 'Syne', sans-serif;
   font-size: 40px;
@@ -329,7 +324,6 @@ body::before {
 }
 .btn-launch:hover { background: #d62505; }
 
-/* RESULTS */
 .results-label {
   font-size: 11px;
   color: var(--accent);
@@ -401,7 +395,6 @@ body::before {
 .stat-value.red { color: var(--accent); }
 .stat-null { font-size: 24px; color: var(--muted); }
 
-/* TABS */
 .tabs {
   display: flex;
   gap: 0;
@@ -429,7 +422,6 @@ body::before {
 .panel { display: none; }
 .panel.active { display: block; }
 
-/* ADS */
 .ads-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 1px; }
 .ad-card { background: var(--surface); overflow: hidden; }
 .ad-creative { height: 80px; background: var(--surface2); display: flex; align-items: center; justify-content: center; border-bottom: 1px solid var(--border); }
@@ -443,7 +435,6 @@ body::before {
 .ad-link { font-size: 10px; color: var(--text); text-decoration: none; letter-spacing: .06em; text-transform: uppercase; border-bottom: 1px solid var(--border); padding-bottom: 2px;}
 .ad-link:hover { color: var(--accent); border-color: var(--accent); }
 
-/* GATE */
 .gate-wrap { position: relative; margin-top: 16px; }
 .gate-blur { filter: blur(6px); opacity: .2; pointer-events: none; display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); border-radius: 8px; overflow: hidden;}
 .gate-overlay {
@@ -486,7 +477,6 @@ body::before {
 .gate-submit:hover { background: #d62505; }
 .gate-success { font-size: 12px; color: var(--accent); margin-top: 16px; letter-spacing: .06em; text-transform: uppercase; font-family: 'Space Mono', monospace; }
 
-/* CANALI & TECH CARDS */
 .channels-card, .kw-section, .tech-card { 
   border: 1px solid var(--border); 
   background: var(--surface); 
@@ -527,7 +517,6 @@ body::before {
   font-weight: 400;
 }
 
-/* TECH */
 .tech-section { padding: 20px 24px; border-bottom: 1px solid var(--border); }
 .tech-section:last-child { border-bottom: none; }
 .tech-section-label { font-size: 11px; color: var(--muted); margin-bottom: 14px; letter-spacing: .12em; text-transform: uppercase; font-family: 'Space Mono', monospace; }
@@ -538,7 +527,6 @@ body::before {
 .tech-tag.analytics { border-color: rgba(255,255,255,.1); color: var(--muted); }
 .tech-tag.platform { border-color: rgba(249, 46, 7, 0.25); color: var(--accent); background: var(--accent-dim); font-weight: 600; }
 
-/* EMPTY / ERROR */
 .empty-state { text-align: center; padding: 56px 20px; color: var(--muted); font-size: 14px; font-weight: 400; border: 1px solid var(--border); border-radius: 8px; }
 .error-note { background: var(--accent-dim); border-radius: 8px; border-left: 4px solid var(--accent); padding: 16px 20px; font-size: 13px; color: var(--accent); margin-bottom: 16px; }
 .warning-note { background: var(--surface); border-radius: 8px; border-left: 4px solid var(--muted); padding: 16px 20px; font-size: 13px; color: var(--muted); margin-bottom: 16px; }
@@ -770,14 +758,14 @@ async function startAnalysis() {
   render();
 
   const fbProfile = state.profiles.find(p => p.id === 'fb' && p.included);
-  const fbName = state.brandName;
+  const fbSlug = fbProfile?.slug || fbProfile?.handle?.replace('@', '') || '';
 
   setStep(1, 'active');
   setStep(2, 'active');
   setStep(3, 'active');
 
   const [adsRes, semRes, techRes] = await Promise.allSettled([
-    fetch(`${API_BASE}/adlibrary?pageName=${encodeURIComponent(fbName)}&limit=20`).then(r => r.json()),
+    fetch(`${API_BASE}/adlibrary?pageName=${encodeURIComponent(fbSlug)}&brandName=${encodeURIComponent(state.brandName)}&limit=20`).then(r => r.json()),
     fetch(`${API_BASE}/semrush?domain=${encodeURIComponent(state.domain)}`).then(r => r.json()),
     fetch(`${API_BASE}/techstack?domain=${encodeURIComponent(state.domain)}`).then(r => r.json())
   ]);
